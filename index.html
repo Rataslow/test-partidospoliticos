@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación Política</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Incluir Chart.js -->
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #6a1b9a, #000000); /* Degradado morado a negro */
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        #questions-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1); /* Fondo translúcido */
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .question {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .question p {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .options button {
+            display: inline-block;
+            margin: 10px 5px;
+            padding: 12px 20px;
+            background-color: #8e24aa; /* Morado para los botones */
+            color: white;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .options button:hover {
+            background-color: #7b1fa2; /* Tonalidad más oscura del morado */
+        }
+
+        .options button:focus {
+            outline: none;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra de progreso */
+        #progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 20px;
+            height: 20px;
+            margin-bottom: 20px;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: #8e24aa; /* Color morado para la barra de progreso */
+            border-radius: 20px;
+            text-align: center;
+            color: #ffffff;
+            font-weight: bold;
+            line-height: 20px;
+        }
+
+        /* Estilo para los botones en dispositivos pequeños */
+        @media (max-width: 600px) {
+            .options button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+
+        #chart-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 50px auto;
+        }
+    </style>
+</head>
+<body>
+
+<div id="questions-container">
+    <!-- Aquí se agregarán dinámicamente las preguntas -->
+    <div id="progress-bar-container">
+        <div id="progress-bar">0%</div>
+    </div>
+</div>
+
+<div id="chart-container">
+    <canvas id="resultChart"></canvas> <!-- Canvas para el gráfico -->
+</div>
+
+<script>
+    // Respuestas por partido (respuestas simplificadas y representativas de partidos reales)
+    const partidos = {
+    "Partido Comunista (Extrema izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Socialista (Izquierda)": ["C", "C", "C", "B", "C", "C", "C", "C", "C", "C", "B", "C", "C", "C", "C", "C", "C", "C", "B", "C", "C", "C", "C"],
+    "Democracia Cristiana (Centro)": ["B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B"],
+    "Partido Radical (Centro)": ["B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B"],
+    "Revolución Democrática (Centro izquierda)": ["C", "C", "C", "B", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Liberal (Centro derecha)": ["B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B"],
+    "Partido de la Gente (Centro derecha)": ["B", "B", "C", "B", "B", "C", "B", "C", "B", "C", "C", "B", "B", "B", "B", "B", "C", "B", "C", "B", "B", "C", "C"],
+    "Evópoli (Centro derecha)": ["A", "B", "B", "A", "B", "A", "B", "A", "B", "A", "A", "B", "B", "A", "B", "A", "B", "A", "B", "A", "A", "A", "B"],
+    "UDI (Derecha extrema)": ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+    "RN (Derecha)": ["A", "B", "A", "A", "B", "A", "B", "A", "A", "A", "B", "A", "A", "B", "A", "B", "B", "A", "B", "A", "A", "B", "A"],
+    "Partido Republicano (Derecha extrema)": ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+    "Partido Humanista (Izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Frente Amplio (Izquierda)": ["C", "C", "C", "B", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Federacion regional verde social (Centro izquierda)": ["C", "C", "C", "D", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Progresista (Izquierda)": ["C", "C", "C", "B", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido País (Centro izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Comunista Acción Proletaria (Centro izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Igualdad (Izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Democracia Directa (Izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Nacionalista (Derecha extrema)": ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+    "Partido Movimiento Autonomista (Centro izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido De los trabajadores (Extrema izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+    "Partido Verde Ecologista (Centro izquierda)": ["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"]
+};
+
+
+    let userResponses = [];
+    let currentQuestion = 0;
+
+    const questions = [
+    { question: "¿Qué tipo de sistema económico prefieres para el desarrollo del país?", options: ['Economía de mercado sin regulación', 'Economía mixta', 'Socialismo democrático', 'Cooperativismo'] },
+    { question: "¿Cuál es tu posición respecto a la educación gratuita y universal?", options: ['Debe ser completamente privada', 'Debe ser mixta, con subsidios', 'Debe ser gratuita para todos', 'Debe enfocarse en la educación comunitaria'] },
+    { question: "¿Qué papel debería tener el Estado en la salud pública?", options: ['Solo un ente regulador', 'Proveer salud básica, el resto privado', 'Proveer salud gratuita para todos', 'Debería priorizar la medicina natural y comunitaria'] },
+    { question: "¿Cuál es tu opinión sobre la minería en Chile?", options: ['Debe ser completamente privada', 'Debe tener participación estatal y privada', 'Debe ser 100% estatal', 'Debe limitarse para proteger el medio ambiente'] },
+    { question: "¿Qué política sobre migración consideras más adecuada?", options: ['Cerrar las fronteras', 'Migración controlada con ciertos requisitos', 'Política de puertas abiertas', 'Fomentar migración con integración cultural'] },
+    { question: "¿Cómo debería el país abordar la crisis climática?", options: ['Dejar que el mercado encuentre soluciones', 'Subsidios para empresas verdes', 'Transición a energías renovables liderada por el Estado', 'Adopción de modelos ancestrales de cuidado ambiental'] },
+    { question: "¿Cuál es tu posición sobre el matrimonio igualitario?", options: ['Debe ser prohibido', 'Debe ser permitido solo con limitaciones', 'Debe ser completamente legal', 'Debe incluir ritos culturales específicos'] },
+    { question: "¿Qué tan relevante consideras el rol de las Fuerzas Armadas en democracia?", options: ['Debe ser ampliado', 'Debe mantenerse como está', 'Debe reducirse su presupuesto', 'Debe enfocarse en ayuda humanitaria'] },
+    { question: "¿Qué opinas sobre el plebiscito de 1988 en Chile?", options: ['Fue un error histórico', 'Fue necesario pero con problemas', 'Marcó un hito democrático', 'Se debió complementar con más cambios sociales'] },
+    { question: "¿Qué tipo de impuestos consideras más justos?", options: ['Impuestos bajos para empresas', 'Impuestos progresivos según ingresos', 'Altos impuestos a los más ricos', 'Impuestos para financiar solo bienes comunes'] },
+    { question: "¿Cómo debería Chile abordar el conflicto en La Araucanía?", options: ['Usar fuerza militar', 'Diálogo con condiciones estrictas', 'Diálogo sin condiciones', 'Autonomía territorial para comunidades indígenas'] },
+    { question: "¿Qué opinas del proceso constitucional actual?", options: ['No debería realizarse', 'Debe ser limitado en su alcance', 'Es una oportunidad para grandes cambios', 'Debería incluir consultas comunitarias'] },
+    { question: "¿Qué postura tienes sobre el aborto?", options: ['Prohibido en todas las circunstancias', 'Permitido en casos específicos', 'Legalizado sin restricciones', 'Permitido según cosmovisiones culturales'] },
+    { question: "¿Qué opinas sobre el transporte público?", options: ['Debe privatizarse completamente', 'Debe mantenerse como está', 'Debe ser gratuito y estatal', 'Debe incluir opciones sostenibles y tradicionales'] },
+    { question: "¿Cuál es tu opinión sobre el gasto en defensa nacional?", options: ['Debe aumentar significativamente', 'Debe mantenerse igual', 'Debe reducirse', 'Debe enfocarse en defensa ambiental'] },
+    { question: "¿Qué opinas sobre los derechos de los pueblos originarios?", options: ['Deben ser iguales a los de todos', 'Deben tener derechos adicionales limitados', 'Deben tener derechos plenos y diferenciados', 'Deben liderar las políticas nacionales'] },
+    { question: "¿Qué modelo educativo prefieres?", options: ['Enfocado en competencias laborales', 'Basado en habilidades mixtas', 'Centrado en derechos humanos y sociales', 'Basado en saberes ancestrales'] },
+    { question: "¿Qué piensas sobre la reforma laboral?", options: ['No es necesaria', 'Debe incluir flexibilización laboral', 'Debe fortalecer derechos sindicales', 'Debe priorizar el cooperativismo'] },
+    { question: "¿Cuál es tu posición sobre los tratados de libre comercio?", options: ['Deberían ampliarse', 'Deberían mantenerse', 'Deberían renegociarse', 'Deberían evitarse para proteger la economía local'] },
+    { question: "¿Qué tan importante es el arte y la cultura en el desarrollo nacional?", options: ['Es secundario', 'Debe ser promovido por empresas privadas', 'Debe ser financiado por el Estado', 'Debe ser gestionado por comunidades locales'] },
+    { question: "¿Cómo evaluas el impacto de la dictadura militar en Chile?", options: ['Fue positivo', 'Tuvo efectos negativos pero necesarios', 'Fue un periodo de graves violaciones de derechos humanos', 'Debió enfocarse en la justicia social'] },
+    { question: "¿Qué opinas sobre el sistema de pensiones en Chile?", options: ['Debe ser completamente privado', 'Debe ser mixto', 'Debe ser 100% estatal y solidario', 'Debe incluir modelos tradicionales de ahorro comunitario'] },
+    { question: "¿Cuál es tu opinión sobre el acceso al agua?", options: ['Debe mantenerse como propiedad privada', 'Debe ser regulado por el Estado', 'Debe ser un derecho humano garantizado', 'Debe gestionarse por comunidades locales'] },
+    { question: "En el caso de un aumento de grupos organizados violentos en el sur de Chile, ¿cómo actuarías como presidente para garantizar la seguridad nacional?", options: ['Declararía un estado de emergencia y enviaría fuerzas militares para restablecer el orden', 'Reforzaría la presencia de la policía con el apoyo de inteligencia para desarticular a los grupos desde dentro', 'Buscaría una solución a través del diálogo y la integración de las comunidades afectadas', 'Propondría una reforma integral de seguridad, priorizando el uso de tecnologías para la prevención de delitos'] },
+    { question: "Si el Congreso aprobara una ley que permita el aborto solo en casos de violación o riesgo para la salud de la madre, ¿qué harías?", options: ['Rechazaría la ley y lucharía por la legalización del aborto libre en cualquier circunstancia', 'Apoyaría la ley, pero propondría un análisis más amplio sobre los derechos reproductivos', 'Me inclinaría por una ley intermedia que permita el aborto bajo más circunstancias, como malformaciones fetales graves', 'Me abstendría de tomar una postura activa, dejando que la ley sea aprobada como está'] },
+    { question: "Si fuera necesario un cambio profundo en el sistema de salud chileno debido a su colapso, ¿cómo lo abordarías?", options: ['Optaría por privatizar la salud para mejorar la eficiencia del sistema', 'Establecería un sistema de salud mixto, combinando lo público y privado para asegurar la cobertura universal', 'Priorizaría un sistema de salud completamente público y gratuito para todos los ciudadanos', 'Iniciaría una reforma para incorporar la medicina tradicional en el sistema público como opción complementaria'] },
+    { question: "En caso de una amenaza de terrorismo dentro de Chile, ¿cómo reaccionarías para garantizar la seguridad de los ciudadanos?", options: ['Suspendería temporalmente ciertos derechos constitucionales para dar más poder a las fuerzas de seguridad', 'Fortalecería las medidas de vigilancia y control sin restringir derechos civiles', 'Propondría un aumento de la cooperación internacional para combatir las redes terroristas', 'Apoyaría un enfoque de prevención social, aumentando la educación en seguridad y tolerancia en las comunidades'] },
+    { question: "En un escenario donde la educación pública se encuentra completamente colapsada, ¿cómo lo solucionarías?", options: ['Privatizaría la educación básica y media, asegurando que los mejores recursos lleguen a los niños', 'Aumentaría la inversión pública en educación y garantizaría una reforma estructural para mejorar la calidad', 'Crear un sistema mixto en el que lo público y privado trabajen en conjunto para mejorar la cobertura y calidad', 'Fomentaría la educación comunitaria como una alternativa viable y de bajo costo para sectores vulnerables'] },
+    { question: "Si un conflicto social de gran escala ocurriera debido a la inseguridad y violencia en las calles, ¿cuál sería tu principal acción para restaurar la paz?", options: ['Utilizaría un enfoque represivo con el uso de fuerzas armadas para garantizar el orden', 'Promovería un diálogo nacional para abordar las causas subyacentes de la violencia y la inseguridad', 'Invertiría en políticas sociales de largo plazo que mejoren la educación y el acceso a empleo', 'Fomentaría un aumento de la cooperación entre sectores privados, públicos y comunidades para crear programas de prevención'] },
+    { question: "Si el país enfrentara una crisis de salud pública similar a la pandemia de COVID-19, ¿cuál sería tu prioridad en términos de política pública?", options: ['Mantener restricciones estrictas para controlar la propagación del virus, aunque afecte la economía', 'Buscar un equilibrio entre el control sanitario y la reactivación de la economía mediante medidas de seguridad', 'Priorizaría la inmunización masiva, con campañas de información para incentivar las vacunas', 'Enfocaría los esfuerzos en la preparación de los sistemas de salud para atender a los más afectados, garantizando la protección social'] },
+    // Agrega más preguntas según lo necesario
+    ];
+
+    function renderQuestion() {
+        const question = questions[currentQuestion];
+        let questionHTML = `
+            <div class="question" data-question="${currentQuestion}" style="display: block;">
+                <p>${question.question}</p>
+                <div class="options">
+                    ${question.options.map((option, index) => `
+                        <button onclick="nextQuestion('${String.fromCharCode(65 + index)}')">${option}</button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        document.getElementById('questions-container').innerHTML = questionHTML + document.getElementById('progress-bar-container').outerHTML;
+        updateProgressBar();
+    }
+
+    function nextQuestion(answer) {
+        userResponses.push(answer);
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+            renderQuestion();
+        } else {
+            evaluateResponses();
+        }
+    }
+
+    function evaluateResponses() {
+        let scores = {};
+        for (const partido in partidos) {
+            let score = 0;
+            userResponses.forEach((response, index) => {
+                if (response === partidos[partido][index]) score++;
+            });
+            scores[partido] = score;
+        }
+
+        const sortedParties = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+        displayChart(sortedParties);
+        generatePDF(sortedParties);
+    }
+
+    function generatePDF(sortedParties) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("Los tres partidos políticos más afines a tus respuestas son:", 10, 10);
+        
+        sortedParties.slice(0, 3).forEach((party, index) => {
+            doc.text(`${index + 1}. ${party[0]} - ${party[1]} puntos`, 10, 20 + (index * 10));
+        });
+
+        doc.save('resultado.pdf');
+    }
+
+    function displayChart(sortedParties) {
+        const labels = sortedParties.map(party => party[0]);
+        const data = sortedParties.map(party => party[1]);
+
+        const ctx = document.getElementById('resultChart').getContext('2d');
+        const scoreChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Puntajes',
+                    data: data,
+                    backgroundColor: '#8e24aa',
+                    borderColor: '#7b1fa2',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        document.getElementById('chart-container').style.display = 'block';
+    }
+
+    function updateProgressBar() {
+        const progress = Math.round((currentQuestion / questions.length) * 100);
+        const progressBar = document.getElementById('progress-bar');
+        progressBar.style.width = progress + '%';
+        progressBar.textContent = progress + '%';
+    }
+
+    renderQuestion();
+</script>
+
+</body>
+</html>
